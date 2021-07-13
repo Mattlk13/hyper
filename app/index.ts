@@ -9,35 +9,6 @@ if (['--help', '-v', '--version'].includes(process.argv[1])) {
   process.exit();
 }
 
-const checkSquirrel = () => {
-  let squirrel;
-
-  try {
-    squirrel = require('electron-squirrel-startup');
-    //eslint-disable-next-line no-empty
-  } catch (err) {}
-  if (squirrel) {
-    process.exit();
-  }
-};
-
-// handle startup squirrel events
-if (process.platform === 'win32') {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const systemContextMenu = require('./system-context-menu');
-
-  switch (process.argv[1]) {
-    case '--squirrel-install':
-    case '--squirrel-updated':
-      systemContextMenu.add();
-      break;
-    case '--squirrel-uninstall':
-      systemContextMenu.remove();
-      break;
-  }
-  checkSquirrel();
-}
-
 // Native
 import {resolve} from 'path';
 
@@ -46,28 +17,6 @@ import {app, BrowserWindow, Menu} from 'electron';
 import {gitDescribe} from 'git-describe';
 import isDev from 'electron-is-dev';
 import * as config from './config';
-
-// Hack - this declararion doesn't work when put into ./ext-modules.d.ts for some reason so it's in this file for the time being
-declare module 'electron' {
-  interface App {
-    config: typeof import('./config');
-    plugins: typeof import('./plugins');
-    getWindows: () => Set<BrowserWindow>;
-    getLastFocusedWindow: () => BrowserWindow | null;
-    windowCallback: (win: BrowserWindow) => void;
-    createWindow: (fn?: (win: BrowserWindow) => void, options?: Record<string, any>) => BrowserWindow;
-    setVersion: (version: string) => void;
-  }
-
-  type Server = import('./rpc').Server;
-  interface BrowserWindow {
-    uid: string;
-    sessions: Map<any, any>;
-    focusTime: number;
-    clean: () => void;
-    rpc: Server;
-  }
-}
 
 // set up config
 config.setup();
@@ -115,23 +64,30 @@ if (isDev) {
 const url = `file://${resolve(isDev ? __dirname : app.getAppPath(), 'index.html')}`;
 console.log('electron will open', url);
 
-function installDevExtensions(isDev_: boolean) {
+async function installDevExtensions(isDev_: boolean) {
   if (!isDev_) {
-    return Promise.resolve([]);
+    return [];
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const installer = require('electron-devtools-installer') as typeof import('electron-devtools-installer');
+  const installer = await import('electron-devtools-installer');
 
   const extensions = ['REACT_DEVELOPER_TOOLS', 'REDUX_DEVTOOLS'] as const;
   const forceDownload = Boolean(process.env.UPGRADE_EXTENSIONS);
 
-  return Promise.all(extensions.map((name) => installer.default(installer[name], forceDownload)));
+  return Promise.all(
+    extensions.map((name) =>
+      installer.default(installer[name], {forceDownload, loadExtensionOptions: {allowFileAccess: true}})
+    )
+  );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 app.on('ready', () =>
   installDevExtensions(isDev)
     .then(() => {
-      function createWindow(fn?: (win: BrowserWindow) => void, options: Record<string, any> = {}) {
+      function createWindow(
+        fn?: (win: BrowserWindow) => void,
+        options: {size?: [number, number]; position?: [number, number]} = {}
+      ) {
         const cfg = plugins.getDecoratedConfig();
 
         const winSet = config.getWin();
@@ -178,18 +134,12 @@ app.on('ready', () =>
 
         const hwin = newWindow({width, height, x: startX, y: startY}, cfg, fn);
         windowSet.add(hwin);
-        hwin.loadURL(url);
+        void hwin.loadURL(url);
 
         // the window can be closed by the browser process itself
         hwin.on('close', () => {
           hwin.clean();
           windowSet.delete(hwin);
-        });
-
-        hwin.on('closed', () => {
-          if (process.platform !== 'darwin' && windowSet.size === 0) {
-            app.quit();
-          }
         });
 
         return hwin;
@@ -207,6 +157,12 @@ app.on('ready', () =>
       app.on('activate', () => {
         if (!windowSet.size) {
           createWindow();
+        }
+      });
+
+      app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') {
+          app.quit();
         }
       });
 
@@ -242,7 +198,7 @@ app.on('ready', () =>
           console.log('Removing Hyper from default client for ssh:// protocol');
           app.removeAsDefaultProtocolClient('ssh');
         }
-        installCLI(false);
+        void installCLI(false);
       }
     })
     .catch((err) => {
@@ -250,9 +206,12 @@ app.on('ready', () =>
     })
 );
 
-app.on('open-file', (event, path) => {
+/**
+ * Get last focused BrowserWindow or create new if none and callback
+ * @param callback Function to call with the BrowserWindow
+ */
+function GetWindow(callback: (win: BrowserWindow) => void) {
   const lastWindow = app.getLastFocusedWindow();
-  const callback = (win: BrowserWindow) => win.rpc.emit('open file', {path});
   if (lastWindow) {
     callback(lastWindow);
   } else if (!lastWindow && {}.hasOwnProperty.call(app, 'createWindow')) {
@@ -262,18 +221,16 @@ app.on('open-file', (event, path) => {
     // sets his callback to an app.windowCallback property.
     app.windowCallback = callback;
   }
+}
+
+app.on('open-file', (_event, path) => {
+  GetWindow((win: BrowserWindow) => {
+    win.rpc.emit('open file', {path});
+  });
 });
 
-app.on('open-url', (event, sshUrl) => {
-  const lastWindow = app.getLastFocusedWindow();
-  const callback = (win: BrowserWindow) => win.rpc.emit('open ssh', sshUrl);
-  if (lastWindow) {
-    callback(lastWindow);
-  } else if (!lastWindow && {}.hasOwnProperty.call(app, 'createWindow')) {
-    app.createWindow(callback);
-  } else {
-    // If createWindow doesn't exist yet ('ready' event was not fired),
-    // sets his callback to an app.windowCallback property.
-    app.windowCallback = callback;
-  }
+app.on('open-url', (_event, sshUrl) => {
+  GetWindow((win: BrowserWindow) => {
+    win.rpc.emit('open ssh', sshUrl);
+  });
 });

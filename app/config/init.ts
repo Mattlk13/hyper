@@ -9,6 +9,7 @@ const _extract = (script?: vm.Script): Record<string, any> => {
   if (!module.exports) {
     throw new Error('Error reading configuration: `module.exports` not set');
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return module.exports;
 };
 
@@ -16,7 +17,7 @@ const _syntaxValidation = (cfg: string) => {
   try {
     return new vm.Script(cfg, {filename: '.hyper.js', displayErrors: true});
   } catch (err) {
-    notify('Error loading config:', `${err.name}, see DevTools for more info`, {error: err});
+    notify(`Error loading config: ${err.name}`, `${err}`, {error: err});
   }
 };
 

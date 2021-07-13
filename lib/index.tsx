@@ -39,7 +39,7 @@ const fetchFileData = (configData: configOptions) => {
     return;
   }
 
-  getBase64FileData(configInfo.bellSoundURL).then((base64FileData) => {
+  void getBase64FileData(configInfo.bellSoundURL).then((base64FileData) => {
     // prepend "base64," to the result of this method in order for this to work properly within xterm.js
     const bellSound = !base64FileData ? null : 'base64,' + base64FileData;
     configInfo.bellSound = bellSound;
@@ -133,6 +133,18 @@ rpc.on('session del line end req', () => {
 
 rpc.on('session break req', () => {
   store_.dispatch(sessionActions.sendSessionData(null, '\x03'));
+});
+
+rpc.on('session stop req', () => {
+  store_.dispatch(sessionActions.sendSessionData(null, '\x1a'));
+});
+
+rpc.on('session quit req', () => {
+  store_.dispatch(sessionActions.sendSessionData(null, '\x1c'));
+});
+
+rpc.on('session tmux req', () => {
+  store_.dispatch(sessionActions.sendSessionData(null, '\x02'));
 });
 
 rpc.on('session search', () => {

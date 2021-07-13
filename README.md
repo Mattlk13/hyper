@@ -1,17 +1,13 @@
-![](https://assets.zeit.co/image/upload/v1549723846/repositories/hyper/hyper-3-repo-banner.png)
+![](https://assets.vercel.com/image/upload/v1549723846/repositories/hyper/hyper-3-repo-banner.png)
 
 <p align="center">
   <a aria-label="Vercel logo" href="https://vercel.com">
-    <img src="https://img.shields.io/badge/MADE%20BY%20Vercel-000000.svg?style=for-the-badge&logo=ZEIT&labelColor=000000&logoWidth=20">
+    <img src="https://img.shields.io/badge/MADE%20BY%20Vercel-000000.svg?style=for-the-badge&logo=vercel&labelColor=000000&logoWidth=20">
   </a>
  </p>
   
 [![Node CI](https://github.com/vercel/hyper/workflows/Node%20CI/badge.svg?event=push)](https://github.com/vercel/hyper/actions?query=workflow%3A%22Node+CI%22+branch%3Acanary+event%3Apush)
-[![macOS CI Status](https://circleci.com/gh/vercel/hyper.svg?style=shield)](https://circleci.com/gh/vercel/hyper)
-[![Windows CI status](https://ci.appveyor.com/api/projects/status/kqvb4oa772an58sc?svg=true)](https://ci.appveyor.com/project/zeit/hyper)
-[![Linux CI status](https://travis-ci.org/vercel/hyper.svg?branch=master)](https://travis-ci.org/vercel/hyper)
 [![Changelog #213](https://img.shields.io/badge/changelog-%23213-lightgrey.svg)](https://changelog.com/213)
-[![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/zeit/hyper)
 
 For more details, head to: https://hyper.is
 
@@ -27,10 +23,10 @@ In the future, we anticipate the community will come up with innovative addition
 
 ### Linux
 #### Arch and derivatives
-Hyper is available in the [AUR](https://aur.archlinux.org/packages/hyper/). Use an AUR package manager like [aurman](https://github.com/polygamma/aurman)
+Hyper is available in the [AUR](https://aur.archlinux.org/packages/hyper/). Use an AUR [package manager](https://wiki.archlinux.org/index.php/AUR_helpers) e.g. [paru](https://github.com/Morganamilo/paru)
 
 ```sh
-aurman -S hyper
+paru -S hyper
 ```
 
 #### NixOS
@@ -46,7 +42,7 @@ Use [Homebrew Cask](https://brew.sh) to download the app by running these comman
 
 ```bash
 brew update
-brew cask install hyper
+brew install --cask hyper
 ```
 
 ### Windows

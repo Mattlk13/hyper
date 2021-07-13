@@ -1,4 +1,5 @@
-import Copy from 'copy-webpack-plugin';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Copy = require('copy-webpack-plugin');
 import path from 'path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
@@ -28,25 +29,27 @@ const config: webpack.Configuration[] = [
       ]
     },
     plugins: [
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       new Copy({
         patterns: [
           {
             from: './app/*.html',
             globOptions: {ignore: ['**/node_modules/**']},
-            to: '.',
-            flatten: true
+            to: '[name][ext]'
           },
           {
             from: './app/*.json',
             globOptions: {ignore: ['**/node_modules/**']},
-            to: '.',
-            flatten: true
+            to: '[name][ext]'
+          },
+          {
+            from: './app/yarn.lock',
+            to: 'yarn.lock'
           },
           {
             from: './app/keymaps/*.json',
             globOptions: {ignore: ['**/node_modules/**']},
-            to: './keymaps',
-            flatten: true
+            to: './keymaps/[name][ext]'
           },
           {
             from: './app/static',
@@ -84,18 +87,19 @@ const config: webpack.Configuration[] = [
         // for xterm.js
         {
           test: /\.css$/,
-          loader: 'style-loader!css-loader'
+          use: ['style-loader', 'css-loader']
         }
       ]
     },
     plugins: [
-      new webpack.IgnorePlugin(/.*\.js.map$/i),
+      new webpack.IgnorePlugin({resourceRegExp: /.*\.js.map$/i}),
 
       new webpack.DefinePlugin({
         'process.env': {
           NODE_ENV: JSON.stringify(nodeEnv)
         }
       }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       new Copy({
         patterns: [
           {
@@ -139,7 +143,7 @@ const config: webpack.Configuration[] = [
     },
     plugins: [
       // spawn-sync is required by execa if node <= 0.10
-      new webpack.IgnorePlugin(/(.*\.js.map|spawn-sync)$/i),
+      new webpack.IgnorePlugin({resourceRegExp: /(.*\.js.map|spawn-sync)$/i}),
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(nodeEnv)
       })
